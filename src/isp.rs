@@ -256,16 +256,28 @@ impl ISPDevice {
     }
 
     pub fn write_cycle(&self, firmware: &mut Vec<u8>) -> Result<(), ISPError> {
+        let firmware_size = firmware.len();
+
         // ensure that the address at <firmware_size-4> is the same as the reset vector
-        firmware.copy_within(1..3, self.part.firmware_size - 4);
+        if firmware_size > self.part.firmware_size - 5 {
+            firmware.copy_within(1..3, self.part.firmware_size - 4);
+        } else if firmware_size > self.part.firmware_size - 4 {
+            firmware.copy_within(1..2, self.part.firmware_size - 4);
+        }
 
         self.erase()?;
         self.write(0, firmware)?;
 
         // cleanup the address at <firmware_size-4>
-        firmware[self.part.firmware_size - 4..self.part.firmware_size - 2].fill(0);
+        if firmware_size > self.part.firmware_size - 4 {
+            firmware[self.part.firmware_size - 4..firmware_size].fill(0);
+        }
 
         let read_back = self.read(0, self.part.firmware_size)?;
+
+        if firmware.len() < self.part.firmware_size {
+            firmware.resize(self.part.firmware_size, 0);
+        }
 
         info!("Verifying...");
         util::verify(firmware, &read_back).map_err(ISPError::from)?;
@@ -304,10 +316,12 @@ impl ISPDevice {
         self.init_write(start_addr)?;
 
         let page_size = self.part.page_size;
-        for i in 0..self.part.num_pages() {
-            // skip the last page
+        let page_count = buffer.len().div_ceil(page_size);
+        let mut buf = buffer.to_vec();
+        buf.resize(page_count * page_size, 0);
+        for i in 0..page_count {
             debug!("Writing page {} @ offset {:#06x}", i, i * page_size);
-            self.write_page(&buffer[(i * page_size)..((i + 1) * page_size)])?;
+            self.write_page(&buf[(i * page_size)..((i + 1) * page_size)])?;
         }
         Ok(())
     }

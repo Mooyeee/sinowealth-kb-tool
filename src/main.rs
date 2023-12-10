@@ -1,3 +1,5 @@
+#![feature(int_roundings)]
+
 use std::{
     fs,
     io::{self, Read},
@@ -112,10 +114,6 @@ fn err_main() -> Result<(), CLIError> {
             file.read_to_end(&mut file_buf).map_err(CLIError::from)?;
             let file_str = String::from_utf8_lossy(&file_buf[..]);
             let mut firmware = from_ihex(&file_str, part.firmware_size).map_err(CLIError::from)?;
-
-            if firmware.len() < part.firmware_size {
-                firmware.resize(part.firmware_size, 0);
-            }
 
             let isp = ISPDevice::new(part).map_err(CLIError::from)?;
             isp.write_cycle(&mut firmware).map_err(CLIError::from)?;
