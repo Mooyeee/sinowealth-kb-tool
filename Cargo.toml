@@ -17,9 +17,10 @@ md5 = "0.7"
 thiserror = "1.0"
 
 [dependencies.hidapi]
-version = "2.4"
+git = "http://github.com/carlossless/hidapi-rs.git"
+branch = "feature/libusb-invasive-get-usage"
 default-features = false
-features = ["linux-static-libusb"]
+features = ["linux-static-libusb-invasive-get-usage"]
 
 [dependencies.log]
 version = "0.4"
